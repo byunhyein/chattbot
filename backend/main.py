@@ -65,7 +65,7 @@ def _ask_ai_once(history):
             HF_URL,
             headers={"Authorization": f"Bearer {token}"},
             json={"model": HF_MODEL, "messages": history, "max_tokens": 1000},
-            timeout=60,
+            timeout=AI_REQUEST_TIMEOUT,
         )
         response.raise_for_status()
         return response.json()["choices"][0]["message"]["content"]
