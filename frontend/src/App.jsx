@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
 import "./App.css";
 
-const API = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
+// 배포할 때는 VITE_API_URL 에 렌더 주소를 쓴다.
+// 값이 없으면 로컬 서버를 쓴다.
+// 예) VITE_API_URl = https://chattbot-back-f4ut.onrender.com
+const API = (
+  import.meta.env.VITE_API_URL || "http://127.0.0.1:8000"
+).replace(/\/$/, "");
 
 export default function App() {
   const [sessions, setSessions] = useState([]);
