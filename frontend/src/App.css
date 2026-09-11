@@ -1,30 +1,28 @@
+:root { --kakao-yellow: #fee500; --kakao-yellow-hover: #f5dc00; --chat-bg: #b2c7d9; --bot-bubble: #fff; --sidebar-bg: #f7f8fa; --sidebar-hover: #eef1f4; --sidebar-active: #e7ebef; --text-primary: #191919; --text-secondary: #66717d; --text-muted: #8b949e; --border-light: #d8dee4; --border-medium: #c6cdd4; }
 * { box-sizing: border-box; }
-body { margin: 0; font-family: system-ui, sans-serif; color: #222; background: #fff; }
-
-.app { display: flex; height: 100vh; }
-
-.side { width: 220px; border-right: 1px solid #ddd; padding: 12px; overflow-y: auto; }
-.new { width: 100%; padding: 8px; cursor: pointer; margin-bottom: 12px; }
-.session-list { list-style: none; margin: 0; padding: 0; }
-.session { display: flex; align-items: center; gap: 4px; padding: 4px 0; }
-.session.on .session-title { font-weight: 700; }
-.session-title { flex: 1; text-align: left; background: none; border: none; padding: 4px; cursor: pointer; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.session-tools button { font-size: 11px; padding: 2px 4px; cursor: pointer; }
-
-.chat { flex: 1; display: flex; flex-direction: column; max-width: 720px; margin: 0 auto; padding: 16px; }
-.box { flex: 1; border: 1px solid #ccc; overflow-y: auto; padding: 16px; }
-
-.user { text-align: right; margin: 10px 0; }
-.bot { text-align: left; margin: 10px 0; }
-.user p, .bot p { display: inline-block; padding: 8px 12px; border-radius: 8px; margin: 0; text-align: left; }
-.user p { background: #d1e7ff; }
-.bot p { background: #f0f0f0; }
-
-.rename { display: flex; gap: 4px; width: 100%; }
-.rename input { flex: 1; min-width: 0; padding: 4px; font-size: 13px; }
-.rename button { font-size: 11px; padding: 2px 6px; cursor: pointer; }
-
-.loading { color: #888; font-style: italic; }
-.input-row { display: flex; gap: 8px; margin-top: 8px; }
-.input-row input { flex: 1; padding: 10px; }
-.input-row button { padding: 10px 18px; cursor: pointer; }
+html, body, #root { min-width: 320px; height: 100%; }
+body { margin: 0; overflow: hidden; color: var(--text-primary); font-family: "Pretendard", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif; background: var(--sidebar-bg); }
+button, input { font: inherit; } button { color: inherit; }
+.app { display: flex; height: 100dvh; min-height: 0; overflow: hidden; }
+.side { z-index: 1; display: flex; width: clamp(245px, 25vw, 332px); flex: 0 0 clamp(245px, 25vw, 332px); flex-direction: column; gap: 18px; padding: 18px 20px; overflow: hidden; border-right: 1px solid var(--border-light); background: var(--sidebar-bg); }
+.new { width: 100%; min-height: 54px; border: 0; border-radius: 11px; background: var(--kakao-yellow); box-shadow: inset 0 -1px rgba(0, 0, 0, .06); cursor: pointer; font-size: 17px; font-weight: 700; transition: background .16s ease, transform .16s ease; }
+.new:hover, .input-row button:hover { background: var(--kakao-yellow-hover); } .new:active, .input-row button:active { transform: translateY(1px); }
+.session-list { display: flex; min-height: 0; flex: 1; flex-direction: column; gap: 4px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.session { display: flex; min-width: 0; align-items: center; gap: 7px; padding: 6px; border-radius: 9px; transition: background .16s ease; } .session:hover { background: var(--sidebar-hover); } .session.on { background: var(--sidebar-active); } .session.on .session-title { font-weight: 700; }
+.session-title { min-width: 0; flex: 1; overflow: hidden; border: 0; background: transparent; cursor: pointer; padding: 7px 3px; text-align: left; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
+.session-tools { display: flex; flex: 0 0 auto; gap: 4px; }
+.session-tools button, .rename button { border: 1px solid var(--border-medium); border-radius: 7px; background: #fff; cursor: pointer; padding: 5px 7px; color: #485463; font-size: 12px; transition: background .16s ease, border-color .16s ease; }
+.session-tools button:hover, .rename button:hover { border-color: #aeb8c2; background: var(--sidebar-hover); }
+.rename { display: flex; width: 100%; gap: 5px; } .rename input { min-width: 0; flex: 1; border: 1px solid var(--border-medium); border-radius: 7px; outline: none; padding: 6px 8px; background: #fff; font-size: 13px; } .rename input:focus, .input-row input:focus { border-color: #8ea8bf; box-shadow: 0 0 0 2px rgba(142, 168, 191, .2); }
+.chat { display: flex; min-width: 0; flex: 1; flex-direction: column; overflow: hidden; background: var(--chat-bg); }
+.box { min-height: 0; flex: 1; overflow-y: auto; padding: 32px clamp(20px, 5vw, 96px) 24px; scrollbar-color: rgba(76, 96, 112, .45) transparent; }
+.user, .bot { display: flex; width: 100%; margin: 0 0 20px; } .user { justify-content: flex-end; } .bot { position: relative; align-items: flex-start; padding-top: 30px; padding-left: 76px; }
+.bot::before { position: absolute; top: 0; left: 0; display: grid; width: 58px; height: 58px; place-items: center; border-radius: 50%; background: #75bfae; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18); content: "☁"; color: #fff; font-size: 28px; line-height: 1; }
+.bot::after { position: absolute; top: 8px; left: 76px; content: "챗봇"; color: #4d5b68; font-size: 13px; font-weight: 600; }
+.user p, .bot p { max-width: min(78%, 760px); margin: 0; padding: 13px 16px; overflow-wrap: anywhere; border-radius: 18px; color: var(--text-primary); text-align: left; white-space: pre-wrap; word-break: break-word; font-size: 15px; line-height: 1.65; }
+.bot p { position: relative; border-top-left-radius: 5px; background: var(--bot-bubble); } .bot p::before { position: absolute; top: 0; left: -8px; width: 16px; height: 17px; background: var(--bot-bubble); clip-path: polygon(100% 0, 0 0, 100% 100%); content: ""; } .user p { border-top-right-radius: 5px; background: var(--kakao-yellow); }
+.loading { display: inline-flex; margin: 0 0 18px 76px; padding: 10px 13px; border-radius: 14px; background: rgba(255, 255, 255, .82); color: var(--text-secondary); font-size: 14px; font-style: normal; }
+.input-row { display: flex; flex: 0 0 auto; gap: 10px; padding: 10px clamp(14px, 3vw, 40px) 14px; border-top: 1px solid rgba(124, 148, 167, .5); background: rgba(255, 255, 255, .72); }
+.input-row input { min-width: 0; min-height: 46px; flex: 1; border: 1px solid var(--border-light); border-radius: 9px; outline: none; padding: 0 14px; background: #fff; color: var(--text-primary); font-size: 15px; transition: border-color .16s ease, box-shadow .16s ease; } .input-row input::placeholder { color: var(--text-muted); }
+.input-row button { min-width: 78px; min-height: 46px; border: 0; border-radius: 9px; background: var(--kakao-yellow); cursor: pointer; padding: 0 16px; font-size: 15px; font-weight: 700; transition: background .16s ease, transform .16s ease; }
+@media (max-width: 680px) { .side { width: 190px; flex-basis: 190px; padding: 14px 10px; } .session-tools { display: none; } .box { padding: 20px 14px; } .bot { padding-left: 52px; } .bot::before { width: 40px; height: 40px; font-size: 20px; } .bot::after { left: 52px; } .user p, .bot p { max-width: 90%; font-size: 14px; } .loading { margin-left: 52px; } }
