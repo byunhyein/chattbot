@@ -1,4 +1,5 @@
 import os
+import time
 from pathlib import Path
 
 import requests
@@ -29,6 +30,10 @@ app.add_middleware(
 
 HF_URL = os.getenv("HF_URL", "https://router.huggingface.co/v1/chat/completions")
 HF_MODEL = os.getenv("HF_MODEL", "Qwen/Qwen3-4B-Instruct-2507")
+AI_REQUEST_TIMEOUT = int(os.getenv("AI_REQUEST_TIMEOUT", "60"))
+AI_RETRY_ATTEMPTS = max(1, int(os.getenv("AI_RETRY_ATTEMPTS", "3")))
+AI_RETRY_DELAY_SECONDS = max(0, float(os.getenv("AI_RETRY_DELAY_SECONDS", "2")))
+RETRYABLE_STATUS_CODES = {408, 429, 500, 502, 503, 504}
 
 
 class Msg(BaseModel):
@@ -44,7 +49,13 @@ def health_check():
     return {"message": "백엔드 정상 작동 중"}
 
 
-def ask_ai(history):
+@app.get("/health")
+def render_health_check():
+    """Lightweight endpoint for Render uptime checks."""
+    return {"status": "ok"}
+
+
+def _ask_ai_once(history):
     token = os.getenv("HF_TOKEN")
     if not token:
         raise HTTPException(status_code=500, detail="HF_TOKEN 환경 변수가 설정되지 않았습니다.")
@@ -60,6 +71,40 @@ def ask_ai(history):
         return response.json()["choices"][0]["message"]["content"]
     except (requests.RequestException, KeyError, IndexError, TypeError, ValueError) as error:
         raise HTTPException(status_code=502, detail="AI 응답을 가져오지 못했습니다.") from error
+
+
+def ask_ai(history):
+    """Absorb transient failures while the upstream service is waking up."""
+    token = os.getenv("HF_TOKEN")
+    if not token:
+        raise HTTPException(status_code=500, detail="HF_TOKEN is not configured.")
+
+    last_error = None
+    for attempt in range(AI_RETRY_ATTEMPTS):
+        try:
+            response = requests.post(
+                HF_URL,
+                headers={"Authorization": f"Bearer {token}"},
+                json={"model": HF_MODEL, "messages": history, "max_tokens": 1000},
+                timeout=AI_REQUEST_TIMEOUT,
+            )
+            if response.status_code not in RETRYABLE_STATUS_CODES:
+                response.raise_for_status()
+                return response.json()["choices"][0]["message"]["content"]
+            last_error = requests.HTTPError(
+                f"Temporary AI service error: {response.status_code}", response=response
+            )
+        except (requests.RequestException, KeyError, IndexError, TypeError, ValueError) as error:
+            last_error = error
+
+        if attempt < AI_RETRY_ATTEMPTS - 1:
+            time.sleep(AI_RETRY_DELAY_SECONDS * (2**attempt))
+
+    raise HTTPException(
+        status_code=503,
+        detail="AI service is waking up. Please try again shortly.",
+        headers={"Retry-After": str(max(1, int(AI_RETRY_DELAY_SECONDS)))},
+    ) from last_error
 
 
 def build_history(session_id):
