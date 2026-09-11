@@ -6,8 +6,8 @@ HuggingFace의 Qwen 모델을 활용한 AI 챗봇 웹 애플리케이션입니�
 
 | 서비스 | URL |
 |--------|-----|
-| 백엔드 API | https://two026-chatbot-backend-v2ys.onrender.com |
-| GitHub | https://github.com/byunhyein/chatbot |
+| 백엔드 API | https://chattbot-back.onrender.com |
+| GitHub | https://github.com/byunhyein/chattbot |
 
 ## 🛠 기술 스택
 
@@ -37,7 +37,8 @@ chatbot/
 └── backend/           # FastAPI 백엔드
     ├── main.py        # API 서버 (GET /, POST /chat)
     ├── requirements.txt
-    └── .env           # HF_TOKEN 환경변수
+    ├── .env.example   # 로컬 환경 변수 예시
+    └── .env           # 로컬 전용 비밀값 (Git 미추적)
 ```
 
 ## 🚀 로컬 실행 방법
@@ -50,10 +51,9 @@ python -m venv .venv
 .venv\Scripts\activate       # Windows
 pip install -r requirements.txt
 
-# .env 파일에 HuggingFace 토큰 설정
-# HF_TOKEN=your_token_here
+# backend/.env.example을 backend/.env로 복사한 뒤 HF_TOKEN을 입력
 
-uvicorn main:app --reload --port 8001
+uvicorn main:app --reload --port 8000
 ```
 
 ### Frontend
@@ -61,10 +61,11 @@ uvicorn main:app --reload --port 8001
 ```bash
 cd frontend
 npm install
+# .env.example을 .env.local로 복사하면 로컬 API 주소를 변경할 수 있습니다.
 npm run dev
 ```
 
-> 로컬 실행 시 `src/App.jsx`의 API 주소를 `http://127.0.0.1:8001/chat` 으로 변경하세요.
+> API 주소는 코드가 아니라 환경 변수로 관리합니다. 로컬 기본값은 `http://127.0.0.1:8000`이며, 운영 빌드는 `https://chattbot-back.onrender.com`을 사용합니다.
 
 ## 📡 API 명세
 
@@ -94,3 +95,7 @@ AI에게 메시지 전송
 | 변수명 | 설명 |
 |--------|------|
 | `HF_TOKEN` | HuggingFace API 토큰 |
+| `HF_URL` | HuggingFace 채팅 API 주소 (선택) |
+| `HF_MODEL` | 사용할 HuggingFace 모델 (선택) |
+| `FRONTEND_ORIGINS` | 허용할 프론트엔드 Origin 목록 (쉼표 구분, 선택) |
+| `VITE_API_BASE_URL` | 프론트엔드가 호출할 백엔드 기본 주소 |

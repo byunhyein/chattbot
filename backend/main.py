@@ -1,20 +1,34 @@
+import os
+from pathlib import Path
+
+import requests
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import requests, os
-from dotenv import load_dotenv
+
 import db
 
-load_dotenv()  # .env의 키를 추출하는 함수
+
+load_dotenv(Path(__file__).with_name(".env"))
+
 app = FastAPI()
 db.init_db()
-print(app)
+
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv("FRONTEND_ORIGINS", "*").split(",")
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+HF_URL = os.getenv("HF_URL", "https://router.huggingface.co/v1/chat/completions")
+HF_MODEL = os.getenv("HF_MODEL", "Qwen/Qwen3-4B-Instruct-2507")
 
 
 class Msg(BaseModel):
@@ -25,45 +39,47 @@ class Title(BaseModel):
     title: str
 
 
-HF_URL = "https://router.huggingface.co/v1/chat/completions"
-HF_MODEL = "Qwen/Qwen3-4B-Instruct-2507"
+@app.get("/")
+def health_check():
+    return {"message": "백엔드 정상 작동 중"}
 
 
 def ask_ai(history):
     token = os.getenv("HF_TOKEN")
-    headers = {"Authorization": f"Bearer {token}"}
-    payload = {
-        "model": HF_MODEL,
-        "messages": history,
-        "max_tokens": 1000,
-    }
-    res = requests.post(HF_URL, headers=headers, json=payload)
-    data = res.json()
-    return data["choices"][0]["message"]["content"]
+    if not token:
+        raise HTTPException(status_code=500, detail="HF_TOKEN 환경 변수가 설정되지 않았습니다.")
+
+    try:
+        response = requests.post(
+            HF_URL,
+            headers={"Authorization": f"Bearer {token}"},
+            json={"model": HF_MODEL, "messages": history, "max_tokens": 1000},
+            timeout=60,
+        )
+        response.raise_for_status()
+        return response.json()["choices"][0]["message"]["content"]
+    except (requests.RequestException, KeyError, IndexError, TypeError, ValueError) as error:
+        raise HTTPException(status_code=502, detail="AI 응답을 가져오지 못했습니다.") from error
 
 
 def build_history(session_id):
-    rows = db.read_message(session_id)
     return [
-        {"role": "user" if r["role"] == "user" else "assistant", "content": r["text"]}
-        for r in rows
+        {"role": "user" if row["role"] == "user" else "assistant", "content": row["text"]}
+        for row in db.read_message(session_id)
     ]
 
 
 @app.post("/chat")
 def chat(msg: Msg):
-    reply = ask_ai([{"role": "user", "content": msg.text}])
-    return {"reply": reply}
+    return {"reply": ask_ai([{"role": "user", "content": msg.text}])}
 
 
-# Create  # Delete
 @app.post("/sessions")
 def new_session():
     session_id = db.create_session()
     return {"id": session_id, "title": "새 대화"}
 
 
-# Read
 @app.get("/sessions")
 def list_sessions():
     return {"sessions": db.read_sessions()}
@@ -76,30 +92,27 @@ def list_messages(session_id: int):
 
 @app.post("/sessions/{session_id}/messages")
 def send_message(session_id: int, msg: Msg):
-    first = db.count_message(session_id) == 0
+    first_message = db.count_message(session_id) == 0
     db.create_message(session_id, "user", msg.text)
-    if first:
+    if first_message:
         db.update_session(session_id, msg.text[:20])
     reply = ask_ai(build_history(session_id))
     db.create_message(session_id, "bot", reply)
     return {"reply": reply}
 
 
-# Update
 @app.put("/sessions/{session_id}")
 def rename_session(session_id: int, body: Title):
     title = body.title.strip()
     if not title:
         raise HTTPException(status_code=400, detail="제목이 비어 있습니다.")
-    if (
-        db.update_session(session_id, title) == 0
-    ):  # update_session 전달인자가 0이면 true
+    if db.update_session(session_id, title) == 0:
         raise HTTPException(status_code=404, detail="해당 대화가 없습니다.")
     return {"id": session_id, "title": title}
 
-# Delete
+
 @app.delete("/sessions/{session_id}")
-def remove_session(session_id:int):
+def remove_session(session_id: int):
     if db.delete_session(session_id) == 0:
         raise HTTPException(status_code=404, detail="해당 대화가 없습니다.")
-    return {"delete": session_id}
+    return {"deleted": session_id}

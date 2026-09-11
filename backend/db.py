@@ -1,10 +1,12 @@
 import sqlite3
+from pathlib import Path
 
-DB_PATH = "chat.db"
+
+DB_PATH = Path(__file__).with_name("chat.db")
 
 
-# DB접속
 def get_conn():
+    """Open the local SQLite database with foreign-key support enabled."""
     conn = sqlite3.connect(DB_PATH, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
@@ -13,14 +15,17 @@ def get_conn():
 
 def init_db():
     conn = get_conn()
-    conn.execute("""
+    conn.execute(
+        """
         CREATE TABLE IF NOT EXISTS sessions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL DEFAULT '새 대화',
             created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
         )
-    """)
-    conn.execute("""
+        """
+    )
+    conn.execute(
+        """
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
@@ -28,7 +33,8 @@ def init_db():
             text TEXT NOT NULL,
             created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
         )
-    """)
+        """
+    )
     conn.commit()
     conn.close()
 
@@ -37,12 +43,11 @@ def create_session():
     conn = get_conn()
     cur = conn.execute("INSERT INTO sessions DEFAULT VALUES")
     conn.commit()
-    new_id = cur.lastrowid
+    session_id = cur.lastrowid
     conn.close()
-    return new_id
+    return session_id
 
 
-# Read
 def read_sessions():
     conn = get_conn()
     rows = conn.execute(
@@ -52,7 +57,6 @@ def read_sessions():
     return [dict(row) for row in rows]
 
 
-# Create
 def create_message(session_id, role, text):
     conn = get_conn()
     cur = conn.execute(
@@ -60,12 +64,11 @@ def create_message(session_id, role, text):
         (session_id, role, text),
     )
     conn.commit()
-    new_id = cur.lastrowid
+    message_id = cur.lastrowid
     conn.close()
-    return new_id
+    return message_id
 
 
-# Read
 def read_message(session_id):
     conn = get_conn()
     rows = conn.execute(
@@ -86,19 +89,15 @@ def count_message(session_id):
     return row["n"]
 
 
-# Update
 def update_session(session_id, title):
     conn = get_conn()
-    cur = conn.execute(
-        "UPDATE sessions SET title = ? WHERE id = ?", (title, session_id)
-    )
+    cur = conn.execute("UPDATE sessions SET title = ? WHERE id = ?", (title, session_id))
     conn.commit()
     changed = cur.rowcount
     conn.close()
     return changed
 
 
-# Delete
 def delete_session(session_id):
     conn = get_conn()
     cur = conn.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
